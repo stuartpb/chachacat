@@ -58,10 +58,12 @@ function chachacat(imagedata, opts) {
         // If we've hit this column's first opaque value
         if (imagedata.data[iy * row + ix*4 + 3] >= threshold) {
 
-          link[0] = ix + increment;
-          link[1] = iy + yedge;
-
           if (chain.length > 1) {
+            // switch near or far corner depending on if we're
+            // closer to our edge (near) or not (far)
+            link[0] = iy * increment < link[1] * increment ?
+              ix : ix + increment;
+            link[1] = iy + yedge;
             // reduce prior concavities
             while (moveWouldBeCounterClockwise()) {
                chain.pop();
@@ -69,7 +71,8 @@ function chachacat(imagedata, opts) {
             // add the new furthest-along point
             chain.push(link.slice());
           } else {
-            chain.push([link[0]-increment, link[1]],link.slice());
+            link[1] = iy+yedge;
+            chain.push([ix, link[1]], [ix + increment, link[1]]);
           }
 
           // start the next column
@@ -89,8 +92,8 @@ function chachacat(imagedata, opts) {
 
   // area calculation //////////////////////////////////////////////////////
 
-  // 0, 1, or 2-point hulls have the area of their number of pixels
-  if (hull.length < 3) return hull.length;
+  // if no opaque pixels were found, the area is zero
+  if (hull.length == 0) return 0;
 
   // push wraparound vertex
   hull.push(hull[0], hull[1]);
