@@ -1,5 +1,23 @@
 /* global chachacat URL */
 
+var transparencyGrid = true;
+var gridBgColor = '#666'; // or #ccc
+var gridFgColor = '#999'; // or #fff
+var gridSize = 8;
+
+var alphaColor = '#000'; // or #FF8000
+var alphaAlpha = 1;
+
+var hullFill = '#FF8000'; // or #007FFF
+var hullAlpha = 0.5;
+var hullCompositeOperation = 'source-over'; // or 'destination-over';
+var outlineFirstColor = '#000';
+var outlineSecondColor = '#fff';
+var outlineDashLength = 4;
+var outlineCompositeOperaton = 'source-over';
+var outlineAlpha = 1;
+var outlineWidth = 2;
+
 var elImage = document.getElementById('source');
 var elCanvas = document.createElement('canvas');
 var elHullCanvas = document.getElementById('hull');
@@ -9,6 +27,20 @@ var elPicker = document.getElementById('picker');
 var ctxCanvas = elCanvas.getContext('2d');
 var ctxHullCanvas = elHullCanvas.getContext('2d');
 
+function generateTransparencyGrid () {
+  if (gridFgColor && gridSize) {
+    elCanvas.width = elCanvas.height = gridSize * 2;
+    ctxCanvas.fillStyle = gridBgColor;
+    ctxCanvas.fillRect(0, 0, gridSize * 2, gridSize * 2);
+    ctxCanvas.fillStyle = gridFgColor;
+    ctxCanvas.fillRect(0, 0, gridSize, gridSize);
+    ctxCanvas.fillRect(gridSize, gridSize, gridSize * 2, gridSize * 2);
+    transparencyGrid = ctxHullCanvas.createPattern(elCanvas, 'repeat');
+  } else transparencyGrid = gridBgColor;
+}
+
+if (transparencyGrid) generateTransparencyGrid();
+
 function calculateFromImage() {
   var w = elImage.width;
   elHullCanvas.width = elCanvas.width = w;
@@ -17,19 +49,60 @@ function calculateFromImage() {
 
   ctxCanvas.clearRect(0,0,w,h);
   ctxCanvas.drawImage(elImage,0,0);
-  ctxHullCanvas.fillStyle = '#fff';
-  ctxHullCanvas.fillRect(0,0,w,h);
+
+  ctxHullCanvas.globalCompositeOperation = 'source-over';
+  ctxHullCanvas.globalAlpha = alphaAlpha;
+  ctxHullCanvas.clearRect(0,0,w,h);
+  ctxHullCanvas.drawImage(elImage,0,0);
+
+  if (alphaColor) {
+    ctxHullCanvas.globalCompositeOperation = 'source-in';
+    ctxHullCanvas.globalAlpha = 1;
+    ctxHullCanvas.fillStyle = alphaColor;
+    ctxHullCanvas.fillRect(0,0,w,h);
+  }
 
   var hull = chachacat(ctxCanvas.getImageData(0,0,w,h),{returnHull: true});
 
   if (hull.length > 0) {
-    ctxHullCanvas.fillStyle = '#000';
     ctxHullCanvas.beginPath();
     ctxHullCanvas.moveTo(hull[0][0], hull[0][1]);
     for (var i = 0; i < hull.length; i++) {
       ctxHullCanvas.lineTo(hull[i][0], hull[i][1]);
     }
-    ctxHullCanvas.fill();
+    ctxHullCanvas.closePath();
+
+    if (hullFill) {
+      ctxHullCanvas.globalCompositeOperation = hullCompositeOperation;
+      ctxHullCanvas.globalAlpha = hullAlpha;
+      ctxHullCanvas.fillStyle = hullFill;
+      ctxHullCanvas.fill();
+    }
+
+    if (outlineFirstColor) {
+      if (outlineDashLength) {
+        ctxHullCanvas.setLineDash([outlineDashLength]);
+      } else {
+        ctxHullCanvas.setLineDash([]);
+      }
+      ctxHullCanvas.globalCompositeOperation = outlineCompositeOperaton;
+      ctxHullCanvas.globalAlpha = outlineAlpha;
+      ctxHullCanvas.lineWidth = outlineWidth;
+      ctxHullCanvas.stroke();
+
+      if (outlineDashLength && outlineSecondColor) {
+        ctxHullCanvas.lineDashOffset = outlineDashLength;
+        ctxHullCanvas.strokeStyle = outlineSecondColor;
+        ctxHullCanvas.stroke();
+      }
+    }
+  }
+
+  if (transparencyGrid) {
+    ctxHullCanvas.globalCompositeOperation = 'destination-over';
+    ctxHullCanvas.globalAlpha = 1;
+    ctxHullCanvas.fillStyle = transparencyGrid;
+    ctxHullCanvas.fillRect(0,0,w,h);
   }
 
   elAreaText.textContent = (hull.length > 0) ? chachacat(hull) : '0';
