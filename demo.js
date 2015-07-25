@@ -1,6 +1,6 @@
 /* global chachacat URL */
 
-var threshold = 64;
+var threshold = 128;
 
 var transparencyGrid = true;
 var gridBgColor = '#666'; // or #ccc

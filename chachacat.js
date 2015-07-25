@@ -5,7 +5,7 @@ function chachacat(imagedata, opts) {
   // image data helpers ////////////////////////////////////////////////////
 
   opts = opts || {};
-  var threshold = opts.threshold || 64;
+  var threshold = opts.threshold || 128;
 
   var hull;
 
