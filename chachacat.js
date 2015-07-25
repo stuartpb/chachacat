@@ -5,9 +5,11 @@ function chachacat(imagedata, opts) {
   // image data helpers ////////////////////////////////////////////////////
 
   opts = opts || {};
-  var threshold = opts.threshold || 128;
+  var threshold = opts.threshold === 0 ? 0 : opts.threshold || 128;
 
   var hull;
+
+  var w, h, row;
 
   // complain on no argument
   if (!imagedata) {
@@ -36,10 +38,16 @@ function chachacat(imagedata, opts) {
   }
   // If we're going to calculate the hull
   if (!hull) {
-    var w = imagedata.width;
-    var h = imagedata.height;
+    w = imagedata.width;
+    h = imagedata.height;
 
-    var row = 4 * w;
+    // Save a row value if we're going to evaluate thresholds
+    if (threshold > 0) {
+      row = 4 * w;
+    // Shortcut area if not actually hulling
+    } else {
+      return opts.returnHull ? [[0,0], [w,0], [w,h], [0,h]] : w*h;
+    }
   }
 
 
