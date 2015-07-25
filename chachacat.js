@@ -7,15 +7,6 @@ function chachacat(imagedata, opts) {
   opts = opts || {};
   var threshold = opts.threshold || 64;
 
-  // This is one of those mistakes I talked myself into and coded before
-  // realizing it's a dumb idea. It's going to be in the first commit,
-  // but then I'm going to immediately rip it out.
-  // It is, essentially, a hack to make squares' areas calculate the exact
-  // number of pixels for the square - and everything else is calculated
-  // as slightly-to-significantly less, depending on the degree to which
-  // the shape is non-uniform.
-  var bias = opts.bias === 0 ? 0 : opts.bias || 1;
-
   var hull;
 
   if (imagedata instanceof HTMLCanvasElement) {
@@ -39,46 +30,58 @@ function chachacat(imagedata, opts) {
 
   function loopSide(increment) {
     var chain = [];
-
-    var ix, iy;
+    var link = [0,0];
 
     function moveWouldBeCounterClockwise() {
       if (chain.length >= 2) {
         var o = chain[chain.length - 2];
         var ox = o[0], oy = o[1];
         var a = chain[chain.length - 1];
-        return ((a[0] - ox) * (iy - oy) -
-                (a[1] - oy) * (ix - ox)) <= 0;
+        return ((a[0] - ox) * (link[1] - oy) -
+                (a[1] - oy) * (link[0] - ox)) <= 0;
       } else return false;
     }
 
-    var xstart, xlimit, ystart, ylimit;
-
-    if (increment > 0) {
-      xstart =  0; ystart =  0;
-      xlimit = iw; ylimit = ih;
-    } else {
-      xstart = iw-1; ystart = ih-1;
-      xlimit = 1; ylimit = 1;
+    function appendLink() {
+      // reduce prior concavities
+      while (moveWouldBeCounterClockwise()) {
+         chain.pop();
+      }
+      // add the new furthest-along point
+      chain.push(link.slice());
     }
 
-    for (ix = xstart; ix * increment < xlimit; ix += increment) {
-      for (iy = ystart; iy * increment < ylimit; iy += increment) {
+    var xstart, xlimit, ystart, ylimit, yedge;
+
+    if (increment > 0) {
+      xstart = 0;    ystart = 0;    yedge = 0;
+      xlimit = iw;   ylimit = ih;
+    } else {
+      xstart = iw-1; ystart = ih-1;
+      xlimit = 1;    ylimit = 1;    yedge = 1;
+    }
+
+    for (var ix = xstart; ix * increment < xlimit; ix += increment) {
+      for (var iy = ystart; iy * increment < ylimit; iy += increment) {
 
         // If we've hit this column's first opaque value
         if (imagedata.data[iy * row + ix*4 + 3] >= threshold) {
 
-          // reduce prior concavities
-          while (moveWouldBeCounterClockwise()) {
-             chain.pop();
-          }
-          // add the new furthest-along point
-          chain.push([ix, iy]);
+          link[1] = iy + yedge;
+
+          link[0] = ix;
+          appendLink();
 
           // start the next column
           break;
         }
       }
+    }
+
+    // Add node for the far edge of the chain
+    if (chain.length > 0) {
+      link[0] += increment;
+      appendLink();
     }
 
     return chain;
@@ -93,7 +96,7 @@ function chachacat(imagedata, opts) {
   // area calculation //////////////////////////////////////////////////////
 
   // 0, 1, or 2-point hulls have the area of their number of pixels
-  if (hull.length < 3) return bias * hull.length;
+  if (hull.length < 3) return hull.length;
 
   // push wraparound vertex
   hull.push(hull[0], hull[1]);
@@ -102,11 +105,5 @@ function chachacat(imagedata, opts) {
   for (var i = 1; i < hull.length-2; i++) {
     area += hull[i][0] * (hull[i+1][1] - hull[i-1][1]);
   }
-  area /= 2;
-  if (bias == 0) {
-    return area;
-  } else {
-    area = Math.sqrt(area)+bias;
-    return area*area;
-  }
+  return area /= 2;
 }
