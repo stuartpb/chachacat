@@ -1,5 +1,7 @@
 /* global chachacat URL */
 
+var threshold = 64;
+
 var transparencyGrid = true;
 var gridBgColor = '#666'; // or #ccc
 var gridFgColor = '#999'; // or #fff
@@ -21,7 +23,7 @@ var outlineWidth = 2;
 var elImage = document.getElementById('source');
 var elCanvas = document.createElement('canvas');
 var elHullCanvas = document.getElementById('hull');
-var elAreaText = document.getElementById('area');
+var elStats = document.getElementById('stats');
 var elPicker = document.getElementById('picker');
 
 var ctxCanvas = elCanvas.getContext('2d');
@@ -62,7 +64,8 @@ function calculateFromImage() {
     ctxHullCanvas.fillRect(0,0,w,h);
   }
 
-  var hull = chachacat(ctxCanvas.getImageData(0,0,w,h),{returnHull: true});
+  var hull = chachacat(ctxCanvas.getImageData(0,0,w,h),
+    {threshold: threshold, returnHull: true});
 
   if (hull.length > 0) {
     ctxHullCanvas.beginPath();
@@ -105,7 +108,10 @@ function calculateFromImage() {
     ctxHullCanvas.fillRect(0,0,w,h);
   }
 
-  elAreaText.textContent = (hull.length > 0) ? chachacat(hull) : '0';
+  var area = chachacat(hull);
+
+  elStats.innerHTML = 'Area: ' + area + ' (' + Math.sqrt(area).toFixed(2) +
+    '&sup2;) / ' + (100*area / (w*h)).toFixed(2) + '% of ' + w + 'x' + h;
 }
 
 elImage.addEventListener('load', calculateFromImage);
