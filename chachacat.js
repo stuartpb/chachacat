@@ -42,15 +42,6 @@ function chachacat(imagedata, opts) {
       } else return false;
     }
 
-    function appendLink() {
-      // reduce prior concavities
-      while (moveWouldBeCounterClockwise()) {
-         chain.pop();
-      }
-      // add the new furthest-along point
-      chain.push(link.slice());
-    }
-
     var xstart, xlimit, ystart, ylimit, yedge;
 
     if (increment > 0) {
@@ -67,21 +58,24 @@ function chachacat(imagedata, opts) {
         // If we've hit this column's first opaque value
         if (imagedata.data[iy * row + ix*4 + 3] >= threshold) {
 
+          link[0] = ix + increment;
           link[1] = iy + yedge;
 
-          link[0] = ix;
-          appendLink();
+          if (chain.length > 1) {
+            // reduce prior concavities
+            while (moveWouldBeCounterClockwise()) {
+               chain.pop();
+            }
+            // add the new furthest-along point
+            chain.push(link.slice());
+          } else {
+            chain.push([link[0]-increment, link[1]],link.slice());
+          }
 
           // start the next column
           break;
         }
       }
-    }
-
-    // Add node for the far edge of the chain
-    if (chain.length > 0) {
-      link[0] += increment;
-      appendLink();
     }
 
     return chain;
