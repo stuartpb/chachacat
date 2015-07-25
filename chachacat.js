@@ -9,22 +9,39 @@ function chachacat(imagedata, opts) {
 
   var hull;
 
-  if (imagedata instanceof HTMLCanvasElement) {
-    imagedata = imagedata.getContext('2d');
-  }
-  if (imagedata instanceof CanvasRenderingContext2D) {
+  // complain on no argument
+  if (!imagedata) {
+    throw new TypeError("No input");
+
+  // arrays are our hull data format
+  } else if (Array.isArray(imagedata)) {
+    hull = imagedata;
+
+  // if we've gotten something that doesn't resemble image data
+  } else if (!imagedata.data) {
+    // if we can't get image data from it
+    if (!(imagedata.getImageData && imagedata.canvas)) {
+      // if we can get a context from it
+      if (imagedata.getContext) {
+        // try getting a 2d rendering context
+        imagedata = imagedata.getContext('2d');
+      // otherwise, don't even bother trying
+      } else {
+        throw new TypeError("Can't get image data or hull from input");
+      }
+    }
+    // Try getting image data from a render context
     imagedata = imagedata.getImageData(0, 0,
       imagedata.canvas.width, imagedata.canvas.height);
   }
-  // two-dimensional arrays are our hull data format
-  if (Array.isArray(imagedata[0])) {
-    hull = imagedata;
+  // If we're going to calculate the hull
+  if (!hull) {
+    var w = imagedata.width;
+    var h = imagedata.height;
+
+    var row = 4 * w;
   }
 
-  var w = imagedata.width;
-  var h = imagedata.height;
-
-  var row = 4 * w;
 
   // convex hull calculation ///////////////////////////////////////////////
 
