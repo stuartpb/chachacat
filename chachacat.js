@@ -21,10 +21,10 @@ function chachacat(imagedata, opts) {
     hull = imagedata;
   }
 
-  var iw = imagedata.width;
-  var ih = imagedata.height;
+  var w = imagedata.width;
+  var h = imagedata.height;
 
-  var row = 4*iw;
+  var row = 4 * w;
 
   // convex hull calculation ///////////////////////////////////////////////
 
@@ -33,7 +33,7 @@ function chachacat(imagedata, opts) {
     var link = [0,0];
 
     function moveWouldBeCounterClockwise() {
-      if (chain.length >= 2) {
+      if (chain.length > 1) {
         var o = chain[chain.length - 2];
         var ox = o[0], oy = o[1];
         var a = chain[chain.length - 1];
@@ -54,11 +54,11 @@ function chachacat(imagedata, opts) {
     var xstart, xlimit, ystart, ylimit, yedge;
 
     if (increment > 0) {
-      xstart = 0;    ystart = 0;    yedge = 0;
-      xlimit = iw;   ylimit = ih;
+      xstart = 0;   ystart = 0;   yedge = 0;
+      xlimit = w;   ylimit = h;
     } else {
-      xstart = iw-1; ystart = ih-1;
-      xlimit = 1;    ylimit = 1;    yedge = 1;
+      xstart = w-1; ystart = h-1;
+      xlimit = 1;   ylimit = 1;   yedge = 1;
     }
 
     for (var ix = xstart; ix * increment < xlimit; ix += increment) {
