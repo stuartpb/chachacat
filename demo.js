@@ -42,3 +42,22 @@ if (elImage.complete) calculateFromImage();
 elPicker.addEventListener('change', function(evt) {
   elImage.src = URL.createObjectURL(elPicker.files[0]);
 });
+
+function testPlus(legs) {
+  legs = legs || 1;
+  var size = legs * 2 + 1;
+  var row = size * 4;
+  var middleRow = row * legs + 3;
+  var middleAlpha = legs * 4 + 3;
+  var imagedata = ctxCanvas.createImageData(size, size);
+  var i;
+  for (i = 0; i < legs; i++) {
+    imagedata.data[row*i+middleAlpha] = 255;
+    imagedata.data[row*(size-i-1)+middleAlpha] = 255;
+  }
+  for (i = 0; i < size; i++) {
+    imagedata.data[middleRow+i*4] = 255;
+  }
+
+  return chachacat(imagedata);
+}

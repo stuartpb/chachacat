@@ -42,43 +42,69 @@ function chachacat(imagedata, opts) {
       } else return false;
     }
 
-    var xstart, xlimit, ystart, ylimit, yedge;
+    var xstart, xlimit, ystart, ylimit, nedge, fedge;
 
     if (increment > 0) {
-      xstart = 0;   ystart = 0;   yedge = 0;
-      xlimit = w;   ylimit = h;
+      xstart = 0;   ystart = 0;   nedge = 0;
+      xlimit = w;   ylimit = h;   fedge = 1;
     } else {
-      xstart = w-1; ystart = h-1;
-      xlimit = 1;   ylimit = 1;   yedge = 1;
+      xstart = w-1; ystart = h-1; nedge = 1;
+      xlimit = 1;   ylimit = 1;   fedge = 0;
     }
+
+    var lastWasCloser = false;
 
     for (var ix = xstart; ix * increment < xlimit; ix += increment) {
       for (var iy = ystart; iy * increment < ylimit; iy += increment) {
 
         // If we've hit this column's first opaque value
         if (imagedata.data[iy * row + ix*4 + 3] >= threshold) {
-
+          // if there are at least two points to compare with
           if (chain.length > 1) {
-            // switch near or far corner depending on if we're
-            // closer to our edge (near) or not (far)
-            link[0] = iy * increment < link[1] * increment ?
-              ix : ix + increment;
-            link[1] = iy + yedge;
+            // if we're closer to our probe edge than the last pixel
+            if ((iy + nedge) * increment < link[1] * increment) {
+              // use the nearer-to-start corner of this pixel
+              link[0] = ix + nedge;
+              // note that we got closer
+              lastWasCloser = true;
+            // if we're further from our probe edge than the last pixel
+            } else {
+              // if the last pixel used only the near-to-start edge
+              if (lastWasCloser) {
+                // push the far-from-start corner of the apex pixel
+                chain.push([link[0]+increment, link[1]]);
+                // note that we got farther
+                lastWasCloser = false;
+              }
+              // use the far-from-start corner of this pixel
+              link[0] = ix + fedge;
+            }
+            // note the edge that we're colliding with
+            link[1] = iy + nedge;
             // reduce prior concavities
             while (moveWouldBeCounterClockwise()) {
                chain.pop();
             }
             // add the new furthest-along point
             chain.push(link.slice());
+          // if there aren't nodes on the chain yet
           } else {
-            link[1] = iy+yedge;
-            chain.push([ix, link[1]], [ix + increment, link[1]]);
+            // Record current height
+            link[1] = iy + nedge;
+            // Push both corners of this pixel on this edge
+            chain.push([ix + nedge, link[1]], [ix + fedge, link[1]]);
           }
 
           // start the next column
           break;
         }
       }
+    }
+
+    // if the last pixel used only the near-to-start corner
+    if (lastWasCloser) {
+      // push the far-from-start corner of the last pixel
+      chain.push([link[0]+increment, link[1]]);
     }
 
     return chain;
