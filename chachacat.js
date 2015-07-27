@@ -150,7 +150,7 @@ function chachacat(imagedata, opts) {
   hull.push(hull[0], hull[1]);
 
   var area = 0;
-  for (var i = 1; i < hull.length-2; i++) {
+  for (var i = 1; i < hull.length - 1; i++) {
     area += hull[i][0] * (hull[i+1][1] - hull[i-1][1]);
   }
   return area /= 2;
