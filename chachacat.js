@@ -38,26 +38,6 @@ function chachacat(imagedata, opts) {
       imagedata.canvas.width, imagedata.canvas.height);
   }
 
-  // if we're going to calculate the hull
-  if (!hull) {
-    w = imagedata.width;
-    h = imagedata.height;
-
-    // save a row value if we're going to evaluate thresholds
-    if (threshold > 0) {
-      row = 4 * w;
-
-    // shortcut area if not actually hulling
-    } else {
-      return opts.returnHull ? [[0,0], [w,0], [w,h], [0,h]] : w*h;
-    }
-
-  // if for some reason we have both been given the hull and asked to return it
-  } else if (opts.returnHull) {
-    // go ahead, be a glorified identity function
-    return hull;
-  }
-
   // convex hull calculation ///////////////////////////////////////////////
 
   function loopSide(ydir) {
@@ -103,13 +83,17 @@ function chachacat(imagedata, opts) {
           while (moveWouldBeCounterClockwise()) {
             chain.pop();
           }
+
           // If we're receding toward the edge
           if (xdiff * xdir < 0) {
             // Push the nearer-to-start corner of the pixel
             chain.push([ex, iy + nedge]);
           }
+
           // add the new furthest-along point
           chain.push([ex, ey]);
+
+          // start the next row
           break;
         }
       }
@@ -118,20 +102,58 @@ function chachacat(imagedata, opts) {
     return chain;
   }
 
-  // if we didn't get the hull as our input, calculate the hull
-  if (!hull) hull = loopSide(1).concat(loopSide(-1));
-
-  // allow for early hull return (mostly for demo / debugging)
-  if (opts.returnHull) return hull;
-
   // area calculation //////////////////////////////////////////////////////
 
-  // if no opaque pixels were found, the area is zero
-  if (hull.length == 0) return 0;
+  // if we didn't get the hull as our input
+  if (!hull) {
 
-  // push wraparound vertex
-  hull.push(hull[0], hull[1]);
+    // ready our width and height values
+    w = imagedata.width;
+    h = imagedata.height;
 
+    // save a row value if we're going to evaluate thresholds
+    if (threshold > 0) {
+      row = 4 * w;
+
+    // shortcut area if not actually hulling
+    } else {
+      return opts.returnHull ? [[0,0], [w,0], [w,h], [0,h]] : w * h;
+    }
+
+    // calculate the hull
+    hull = loopSide(1).concat(loopSide(-1));
+
+    // allow for early hull return (mostly for demo / debugging)
+    if (opts.returnHull) return hull;
+
+    // if we found no pixels, there's no area
+    else if (hull.length == 0) return 0;
+
+    // If we're not exposing the hull we made, add a wraparound vertex
+    else hull.push(hull[0], hull[1]);
+
+  // if we've been given the hull
+  } else {
+    // if for some reason we have also been asked to return it
+    if (opts.returnHull) {
+      // go ahead, be a glorified identity function
+      return hull;
+
+    // if we've been given a hull that can't define a polygon
+    } else if (hull.length < 3) {
+      // nulls and points and lines have an area of zero
+      return 0;
+
+    // if we're doing our area calculation on the given hull
+    } else {
+      // Use a copy of that hull with a wraparound vertex
+      hull = hull.concat(hull.slice(0,2));
+    }
+  }
+
+  // actually calculate the area of the polygon
+  // adapted from http://stackoverflow.com/a/717367/34799
+  // itself adapted from http://geomalgorithms.com/a01-_area.html#2D-Polygons
   var area = 0;
   for (var i = 1; i < hull.length - 1; i++) {
     area += hull[i][0] * (hull[i+1][1] - hull[i-1][1]);
