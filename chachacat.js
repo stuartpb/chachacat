@@ -32,44 +32,57 @@ function chachacat(imagedata, opts) {
         throw new TypeError("Can't get image data or hull from input");
       }
     }
-    // Try getting image data from a render context
+
+    // try getting image data from a render context
     imagedata = imagedata.getImageData(0, 0,
       imagedata.canvas.width, imagedata.canvas.height);
   }
-  // If we're going to calculate the hull
+
+  // if we're going to calculate the hull
   if (!hull) {
     w = imagedata.width;
     h = imagedata.height;
 
-    // Save a row value if we're going to evaluate thresholds
+    // save a row value if we're going to evaluate thresholds
     if (threshold > 0) {
       row = 4 * w;
-    // Shortcut area if not actually hulling
+
+    // shortcut area if not actually hulling
     } else {
       return opts.returnHull ? [[0,0], [w,0], [w,h], [0,h]] : w*h;
     }
-  }
 
+  // if for some reason we have both been given the hull and asked to return it
+  } else if (opts.returnHull) {
+    // go ahead, be a glorified identity function
+    return hull;
+  }
 
   // convex hull calculation ///////////////////////////////////////////////
 
-  function loopSide(increment) {
+  function loopSide(ydir) {
+    var xdir = -ydir;
     var chain = [];
-    var link = [0,0];
+    var ex, ey;
+    var xdiff = -xdir;
 
     function moveWouldBeCounterClockwise() {
-      if (chain.length > 1) {
-        var o = chain[chain.length - 2];
-        var ox = o[0], oy = o[1];
+      if (chain.length > 0) {
         var a = chain[chain.length - 1];
-        return ((a[0] - ox) * (link[1] - oy) -
-                (a[1] - oy) * (link[0] - ox)) <= 0;
+        xdiff = ex - a[0];
+
+        if (chain.length > 1) {
+          var o = chain[chain.length - 2];
+          var ox = o[0], oy = o[1];
+          return ((a[0] - ox) * (ey - oy) -
+                  (a[1] - oy) * (ex - ox)) <= 0;
+        } else return false;
       } else return false;
     }
 
     var xstart, xlimit, ystart, ylimit, nedge, fedge;
 
-    if (increment > 0) {
+    if (ydir > 0) {
       xstart = w-1; ystart = 0;   nedge = 0;
       xlimit = 1;   ylimit = h;   fedge = 1;
     } else {
@@ -77,59 +90,29 @@ function chachacat(imagedata, opts) {
       xlimit = w;   ylimit = 1;   fedge = 0;
     }
 
-    var lastWasCloser = false;
-
-    for (var iy = ystart; iy * increment < ylimit; iy += increment) {
-      for (var ix = xstart; ix * -increment < xlimit; ix -= increment) {
+    for (var iy = ystart; iy * ydir < ylimit; iy += ydir) {
+      for (var ix = xstart; ix * xdir < xlimit; ix += xdir) {
 
         // If we've hit this column's first opaque value
-        if (imagedata.data[iy * row + ix*4 + 3] >= threshold) {
-          // if there are at least two points to compare with
-          if (chain.length > 1) {
-            // if we're closer to our probe edge than the last pixel
-            if ((ix + fedge) * increment < link[0] * increment) {
-              // use the nearer-to-start corner of this pixel
-              link[1] = iy + nedge;
-              // note that we got closer
-              lastWasCloser = true;
-            // if we're further from our probe edge than the last pixel
-            } else {
-              // if the last pixel used only the near-to-start edge
-              if (lastWasCloser) {
-                // push the far-from-start corner of the apex pixel
-                chain.push([link[0], link[1] + increment]);
-                // note that we got farther
-                lastWasCloser = false;
-              }
-              // use the far-from-start corner of this pixel
-              link[1] = iy + fedge;
-            }
-            // note the edge that we're colliding with
-            link[0] = ix + fedge;
-            // reduce prior concavities
-            while (moveWouldBeCounterClockwise()) {
-               chain.pop();
-            }
-            // add the new furthest-along point
-            chain.push(link.slice());
-          // if there aren't nodes on the chain yet
-          } else {
-            // Record current depth
-            link[0] = ix + fedge;
-            // Push both corners of this pixel on this edge
-            chain.push([link[0], iy + nedge], [link[0], iy + fedge]);
-          }
+        var alpha = imagedata.data[iy * row + ix * 4 + 3];
+        if (alpha >= threshold) {
+          ex = ix + fedge;
+          ey = iy + fedge;
 
-          // start the next column
+          // reduce prior concavities
+          while (moveWouldBeCounterClockwise()) {
+            chain.pop();
+          }
+          // If we're receding toward the edge
+          if (xdiff * xdir < 0) {
+            // Push the nearer-to-start corner of the pixel
+            chain.push([ex, iy + nedge]);
+          }
+          // add the new furthest-along point
+          chain.push([ex, ey]);
           break;
         }
       }
-    }
-
-    // if the last pixel used only the near-to-start corner
-    if (lastWasCloser) {
-      // push the far-from-start corner of the last pixel
-      chain.push([link[0], link[1] + increment]);
     }
 
     return chain;
