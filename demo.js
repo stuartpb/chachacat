@@ -67,6 +67,8 @@ function calculateFromImage() {
   var hull = chachacat(ctxCanvas.getImageData(0,0,w,h),
     {threshold: threshold, returnHull: true});
 
+  console.log(hull);
+
   if (hull.length > 0) {
     ctxHullCanvas.beginPath();
     ctxHullCanvas.moveTo(hull[0][0], hull[0][1]);
@@ -122,8 +124,29 @@ elPicker.addEventListener('change', function(evt) {
   elImage.src = URL.createObjectURL(elPicker.files[0]);
 });
 
-function testPlus(legs) {
+function testX(legs, opts) {
   legs = legs || 1;
+  opts = opts || {};
+  var size = legs * 2 + 1;
+  var row = size * 4;
+  var imagedata = ctxCanvas.createImageData(size, size);
+  var i;
+  for (i = 0; i < legs; i++) {
+    imagedata.data[row*i+i*4+3] = 255;
+    imagedata.data[row*i+(size-i-1)*4+3] = 255;
+    imagedata.data[row*(size-i-1)+i*4+3] = 255;
+    imagedata.data[row*(size-i-1)+(size-i-1)*4+3] = 255;
+  }
+  imagedata.data[row*legs+legs*4+3] = 255;
+
+  if (opts.putTo) opts.putTo.putImageData(imagedata,0,0);
+
+  return chachacat(imagedata, opts);
+}
+
+function testPlus(legs, opts) {
+  legs = legs || 1;
+  opts = opts || {};
   var size = legs * 2 + 1;
   var row = size * 4;
   var middleRow = row * legs + 3;
@@ -138,5 +161,36 @@ function testPlus(legs) {
     imagedata.data[middleRow+i*4] = 255;
   }
 
-  return chachacat(imagedata);
+  if (opts.putTo) opts.putTo.putImageData(imagedata,0,0);
+
+  return chachacat(imagedata, opts);
+}
+
+function testO(edge, steps, opts) {
+  edge = edge || 1;
+  steps = steps || 0;
+  opts = opts || {};
+  var size = steps * 2 + edge + 2;
+  var row = size * 4;
+  var bottom = row * (size - 1);
+  var right = row - 1;
+  var stepedge = steps + 1;
+  var imagedata = ctxCanvas.createImageData(size, size);
+  var i;
+  for (i = 0; i < edge; i++) {
+    imagedata.data[(stepedge+i)*4+3] = 255;
+    imagedata.data[row*(stepedge+i)+3] = 255;
+    imagedata.data[row*(stepedge+i)+right] = 255;
+    imagedata.data[bottom+(stepedge+i)*4+3] = 255;
+  }
+  for (i = 0; i < steps; i++) {
+    imagedata.data[row*(i+1)+(steps-i)*4+3] = 255;
+    imagedata.data[row*(i+2)-(stepedge-i)*4+3] = 255;
+    imagedata.data[bottom-(i+1)*row+(steps-i)*4+3] = 255;
+    imagedata.data[bottom-i*row-(stepedge-i)*4+3] = 255;
+  }
+
+  if (opts.putTo) opts.putTo.putImageData(imagedata,0,0);
+
+  return chachacat(imagedata, opts);
 }
