@@ -7,7 +7,8 @@ function chachacat(imagedata, opts) {
   opts = opts || {};
   var threshold = opts.threshold === 0 ? 0 : opts.threshold || 128;
 
-  var hull;
+  // The vector of points in our hull.
+  var v;
 
   var w, h, row;
 
@@ -17,7 +18,7 @@ function chachacat(imagedata, opts) {
 
   // arrays are our hull data format
   } else if (Array.isArray(imagedata)) {
-    hull = imagedata;
+    v = imagedata;
 
   // if we've gotten something that doesn't resemble image data
   } else if (!imagedata.data) {
@@ -105,7 +106,7 @@ function chachacat(imagedata, opts) {
   // area calculation //////////////////////////////////////////////////////
 
   // if we didn't get the hull as our input
-  if (!hull) {
+  if (!v) {
 
     // ready our width and height values
     w = imagedata.width;
@@ -121,42 +122,40 @@ function chachacat(imagedata, opts) {
     }
 
     // calculate the hull
-    hull = loopSide(1).concat(loopSide(-1));
+    v = loopSide(1).concat(loopSide(-1));
+  }
 
-    // allow for early hull return (mostly for demo / debugging)
-    if (opts.returnHull) return hull;
+  // allow for early hull return (mostly for demo / debugging)
+  if (opts.returnHull) return v;
 
-    // if we found no pixels, there's no area
-    else if (hull.length == 0) return 0;
+  // if we have a hull that can't define a polygon
+  else if (v.length < 3) {
 
-    // If we're not exposing the hull we made, add a wraparound vertex
-    else hull.push(hull[0], hull[1]);
-
-  // if we've been given the hull
-  } else {
-    // if for some reason we have also been asked to return it
-    if (opts.returnHull) {
-      // go ahead, be a glorified identity function
-      return hull;
-
-    // if we've been given a hull that can't define a polygon
-    } else if (hull.length < 3) {
-      // nulls and points and lines have an area of zero
-      return 0;
-
-    // if we're doing our area calculation on the given hull
-    } else {
-      // Use a copy of that hull with a wraparound vertex
-      hull = hull.concat(hull.slice(0,2));
-    }
+    // nulls and points and lines have an area of zero
+    return 0;
   }
 
   // actually calculate the area of the polygon
   // adapted from http://stackoverflow.com/a/717367/34799
   // itself adapted from http://geomalgorithms.com/a01-_area.html#2D-Polygons
-  var area = 0;
-  for (var i = 1; i < hull.length - 1; i++) {
-    area += hull[i][0] * (hull[i+1][1] - hull[i-1][1]);
+
+  var n = v.length;
+  var last = n - 1;
+  var i, j, k;
+
+  // start with the integral of the first quad
+  // (which uses the last point's Y as its posterior bound)
+  var area = v[0][0] * (v[1][1] - v[last][1]);
+
+  // add the integrals of all intermediate quads
+  for (i = 1, j = 2, k = 0; i < last; ++i, ++j, ++k) {
+    area += v[i][0] * (v[j][1] - v[k][1]);
   }
+
+  // wrap around to add the integral of the last quad
+  // (which uses the first point's Y as its anterior bound)
+  area += v[i][0] * (v[0][1] - v[k][1]);
+
+  // return the area of the polygon (half the quads)
   return area /= 2;
 }
