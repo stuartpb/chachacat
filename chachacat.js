@@ -143,18 +143,18 @@ function chachacat(imagedata, opts) {
   var last = n - 1;
   var i, j, k;
 
-  // start with the integral of the first quad
-  // (which uses the last point's Y as its posterior bound)
-  var area = v[0][0] * (v[1][1] - v[last][1]);
+  // start with the integrals with special-case wrap-around indexing:
+  // the integral of the first Y quad
+  // (which uses the last point's X as its posterior bound)
+  var area = -v[0][1] * (v[1][0] - v[last][0]) -
+    // subtract the integral of the last Y quad
+    // (which uses the first point's X as its anterior bound)
+    v[last][1] * (v[0][0] - v[last-1][0]);
 
-  // add the integrals of all intermediate quads
+  // subtract the integrals of all intermediate quads
   for (i = 1, j = 2, k = 0; i < last; ++i, ++j, ++k) {
-    area += v[i][0] * (v[j][1] - v[k][1]);
+    area -= v[i][1] * (v[j][0] - v[k][0]);
   }
-
-  // wrap around to add the integral of the last quad
-  // (which uses the first point's Y as its anterior bound)
-  area += v[i][0] * (v[0][1] - v[k][1]);
 
   // return the area of the polygon (half the quads)
   return area /= 2;
