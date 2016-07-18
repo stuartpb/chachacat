@@ -1,6 +1,13 @@
-/* global CanvasRenderingContext2D */
-
-function chachacat(imagedata, opts) {
+(function (root, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define([], factory);
+  } else if (typeof module === 'object' && module.exports) {
+    module.exports = factory();
+  } else {
+    root.chachacat = factory();
+  }
+}(this, function () {
+return function chachacat(imagedata, opts) {
 
   // image data helpers ////////////////////////////////////////////////////
 
@@ -158,4 +165,5 @@ function chachacat(imagedata, opts) {
 
   // return the area of the polygon (half the quads)
   return area /= 2;
-}
+};
+}));
