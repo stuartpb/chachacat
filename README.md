@@ -15,4 +15,4 @@ space occupied by the image. This can then be used for, say, normalizing the
 size of icons on a menu, rather than [trusting developers to figure out][1],
 which, in practice, doesn't really work.
 
-[1]: https://developer.chrome.com/webstore/images
+[1]: https://developer.chrome.com/docs/webstore/images#icon-size
